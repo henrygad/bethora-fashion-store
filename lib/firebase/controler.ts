@@ -32,7 +32,7 @@ const formatData = (snap: DocumentSnapshot<DocumentData, DocumentData>) => {
 
 const Controller = {
     async createData<T,>(DOC_NAME: DOC_NAME, data: unknown) {
-        const getData = data as T;        
+        const getData = data as T;                
 
         // product is an object already prepared
         const colRef = collection(db, DOC_NAME);

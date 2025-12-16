@@ -1,27 +1,23 @@
 export interface ProductType {
-    id?: string;                     // Firestore document ID
-    title: string;                   // Product title
+    id: string;                     // Firestore document ID
+    name: string;                   // Product title
     category: string;               // Main category
     subcategory?: string;           // Optional subcategory
-    description: string;            // Full product description
+    description?: string;            // Full product description
 
     price: number;                  // Original price
     discountPrice: number | null;         // Optional discounted price
 
     stock: number;                  // Inventory quantity
-    sku: string;                    // Stock Keeping Unit (unique identifier)
+    sku?: string;                    // Stock Keeping Unit (unique identifier)
 
-    primaryImage: {
-        url: string;
-        filename: string;
-    } | null;           // URL of the main image
-    otherImages: {
-        url: string;
-        filename: string;
-    }[];          // URLs of additional images
+    primaryImage: string | null;           // URL of the main image
+    otherImages?: string[];          // URLs of additional images
 
-    colors: string[];               // List of color names ("red", "blue", "#F4A300", etc.)
+    colors?: string[];               // List of color names ("red", "blue", "#F4A300", etc.)
 
     createdAt: Date | null;         // Timestamp from Firebase
     updatedAt?: Date | null;        // Optional update timestamp
+
+    status: "Active" | "Out of stock" | "Sold" | "Inactive"
 }

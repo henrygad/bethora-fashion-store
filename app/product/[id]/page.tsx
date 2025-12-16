@@ -40,6 +40,7 @@ const PRODUCTS = {
 
 export default function ProductPage({ params }: { params: { id: string } }) {
   const product = PRODUCTS[params.id as keyof typeof PRODUCTS]
+  
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState(product?.colors[0] || "")
   const [quantity, setQuantity] = useState(1)

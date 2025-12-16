@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,29 +32,34 @@ import Image from "next/image";
 import { Plus, Trash } from "lucide-react";
 import { ProductType } from "@/type/product";
 import { uploadImageToCloud } from "@/lib/cloudinary/services";
-
+import { useProduct } from "@/context/product-context";
 
 const productSchema = z.object({
-    title: z.string().min(1, "Title is required"),
+    name: z.string().min(1, "Title is required"),
     category: z.string().min(1, "Select a category"),
     subcategory: z.string().optional(),
     description: z.string().optional(),
     price: z.preprocess((v) => (v === "" ? 0 : Number(v)), z.number().nonnegative("Price must be >= 0")),
-    discountPrice: z
-        .preprocess((v) => (v === "" ? null : Number(v)), z.union([z.number().nonnegative("Discount must be >= 0"), z.null()])),
+    discountPrice: z.preprocess((v) => (v === "" ? null : Number(v)), z.union([z.number().nonnegative("Discount must be >= 0"), z.null()])),
     stock: z.preprocess((v) => (v === "" ? 0 : Number(v)), z.number().int().nonnegative("Stock must be a non-negative integer")),
     sku: z.string().optional(),
-    primaryImage: z.any().optional(),
-    otherImages: z.any().optional(),
+    primaryImage: z.union([z.string(), z.null()]),
+    otherImages: z.array(z.string()).default([]),
     colors: z.array(z.string()).default([]),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
 
 
-export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductFormValues | null }) {
+export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductType | null }) {
     const router = useRouter();
 
+
+    const { addProduct, updateProduct } = useProduct();
+
+
+    const primaryImageRef = useRef<FileList | null>(null);
+    const otherImagesRef = useRef<FileList | null>(null);
     const [primaryPreview, setPrimaryPreview] = useState<string | null>(null);
     const [otherPreviews, setOtherPreviews] = useState<string[]>([]);
 
@@ -69,17 +74,17 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
     const form = useForm<ProductFormValues>({
         resolver: zodResolver(productSchema),
         defaultValues: {
-            title: "",
-            category: "",
-            subcategory: "",
-            description: "",
-            price: 0,
-            discountPrice: null,
-            stock: 0,
-            sku: "",
-            colors: [],
-            primaryImage: "",
-            otherImages: [],
+            name: data_to_edit?.name ?? "",
+            category: data_to_edit?.category ?? "",
+            subcategory: data_to_edit?.subcategory ?? "",
+            description: data_to_edit?.description ?? "",
+            price: data_to_edit?.price ?? 0,
+            discountPrice: data_to_edit?.discountPrice ?? null,
+            stock: data_to_edit?.stock ?? 0,
+            sku: data_to_edit?.sku ?? "",
+            colors: data_to_edit?.colors ?? [],
+            primaryImage: data_to_edit?.primaryImage ?? "",
+            otherImages: data_to_edit?.otherImages ?? [],            
         },
     });
 
@@ -101,23 +106,6 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
     }, []);
 
 
-    // load data to edit
-    const [loading_data_to_edit, setLoading_data_to_edit] = useState(true);
-    useEffect(() => {
-        if (data_to_edit) {
-            for (const key of Object.keys(data_to_edit)) {
-                const getKey = key as keyof ProductFormValues;
-                form.setValue(getKey, data_to_edit[getKey]);
-            }
-        }
-
-        setLoading_data_to_edit(false);
-    }, [data_to_edit]);
-
-
-    // Loading incoming date ti edit
-    if (loading_data_to_edit) return <div>loading...</div>
-
     // auto-generate SKU
     const generateSKU = (productName: string) => {
         const prefix = productName.slice(0, 3).toUpperCase();
@@ -125,46 +113,50 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
         return `${prefix}-${random}`;
     };
 
+    // Create new product
     const createNewProduct = async (values: ProductFormValues) => {
         setLoading(true);
         try {
 
-
             // prepare product object
             const product: ProductType = {
-                title: values.title,
+                id: "",
+                name: values.name,
                 category: values.category,
                 subcategory: values.subcategory || "",
                 description: values.description || "",
                 price: Number(values.price),
                 discountPrice: values.discountPrice === null ? null : Number(values.discountPrice),
                 stock: Number(values.stock),
-                sku: values.sku || generateSKU(values.title),
+                sku: values.sku || generateSKU(values.name),
                 primaryImage: null,
                 otherImages: [],
                 colors: values.colors || [],
                 createdAt: null,
                 updatedAt: null,
+                status: "Active"
             };
 
-            // upload primary image
-            const primaryInput = (form.getValues("primaryImage") as any) || null;
-            if (primaryInput && primaryInput.length && primaryInput[0] instanceof File) {
-                const file: File = primaryInput[0];
+            // upload primary image           
+            if (primaryImageRef.current &&
+                primaryImageRef.current.length &&
+                primaryImageRef.current[0] instanceof File) {
+                const file: File = primaryImageRef.current[0];
                 const uploaded = await uploadImageToCloud(file);
                 product.primaryImage = uploaded.url;
+                primaryImageRef.current = null;
             }
 
             // upload other images if present (FileList)
-            const otherInput = (form.getValues("otherImages") as any) || null;
-            if (otherInput && otherInput.length) {
-                const files: File[] = Array.from(otherInput as FileList);
-                const uploadedList: { url: string; filename: string }[] = [];
+            if (otherImagesRef.current && otherImagesRef.current.length) {
+                const files: File[] = Array.from(otherImagesRef.current as FileList);
+                const uploadedList = [];
                 for (const f of files) {
                     const uploaded = await uploadImageToCloud(f);
                     uploadedList.push(uploaded.url);
                 }
                 product.otherImages = uploadedList;
+                otherImagesRef.current = null;
             }
 
             // create new product doc
@@ -172,8 +164,7 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
 
             // get created product doc
             const newProduct = await Controller.getData<ProductType>("products", id);
-
-            console.log(newProduct, "newProduct");
+            addProduct(newProduct);
 
             toast.success("Product created");
             form.reset();
@@ -187,11 +178,60 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
         }
     };
 
+    // Update product
+    const editProduct = async (edit: ProductType, values: ProductFormValues) => {
+        setLoading(true);
+        try {
+
+            // prepare product object
+            const product: ProductType = { ...edit, ...values };
+
+            // upload primary image           
+            if (primaryImageRef.current &&
+                primaryImageRef.current.length &&
+                primaryImageRef.current[0] instanceof File) {
+                const file: File = primaryImageRef.current[0];
+                const uploaded = await uploadImageToCloud(file);
+                product.primaryImage = uploaded.url;
+                primaryImageRef.current = null;
+            }
+
+            // upload other images if present (FileList)
+            if (otherImagesRef.current && otherImagesRef.current.length) {
+                const files: File[] = Array.from(otherImagesRef.current as FileList);
+                const uploadedList = [];
+                for (const f of files) {
+                    const uploaded = await uploadImageToCloud(f);
+                    uploadedList.push(uploaded.url);
+                }
+                product.otherImages = uploadedList;
+                otherImagesRef.current = null;
+            }
+
+            // create new product doc
+            await Controller.updateData("products", product.id, product);
+            updateProduct(product);
+
+            toast.success("Product Upadte!");
+            form.reset();
+            router.back();
+
+        } catch (err) {
+            console.error("Update product error:", err);
+            toast.error("Error creating product");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     // Submit product
-    async function onSubmit(values: ProductFormValues) {
-        console.log(values)
-        createNewProduct(values);
+    async function onSubmit(values: ProductFormValues) {        
+        if (data_to_edit) {
+            await editProduct(data_to_edit, values);
+        } else {
+            await createNewProduct(values);
+
+        }
     };
 
 
@@ -201,13 +241,13 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
             <div className="lg:col-span-2">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-lg shadow">
-                        {/* Title */}
+                        {/* Name */}
                         <FormField
                             control={form.control}
-                            name="title"
+                            name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Product Title</FormLabel>
+                                    <FormLabel>Product Name</FormLabel>
                                     <FormControl>
                                         <Input placeholder="E.g. Linen Summer Shirt" {...field} />
                                     </FormControl>
@@ -419,8 +459,8 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
                                             type="file"
                                             accept="image/*"
                                             onChange={(e) => {
-                                                const files = e.target.files;
-                                                form.setValue("primaryImage", files);
+                                                const files = e.target.files;                                                
+                                                primaryImageRef.current = files;
                                                 uploadPreview(files, (urls) => setPrimaryPreview(urls[0]));
                                             }}
                                             className="border-dotted border-2 border-gray-700"
@@ -441,8 +481,8 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
                                             variant="destructive"
                                             className="mt-2"
                                             onClick={() => {
-                                                setPrimaryPreview(null);
-                                                form.setValue("primaryImage", null);
+                                                setPrimaryPreview(null);                                                
+                                                primaryImageRef.current = null
                                             }}
                                         >
                                             Remove Image
@@ -463,8 +503,8 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
                                     multiple
                                     className="mt-2 border-dotted border-2 border-gray-700"
                                     onChange={(e) => {
-                                        const files = e.target.files;
-                                        form.setValue("otherImages", files);
+                                        const files = e.target.files;                                        
+                                        otherImagesRef.current = files;
                                         uploadPreview(files, (urls) => setOtherPreviews(urls));
                                     }}
                                 />
@@ -489,14 +529,13 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductF
                                                         setOtherPreviews(newPrev);
 
                                                         // sync form FileList removal logic
-                                                        const fileList = Array.from((form.getValues("otherImages") || []) as File[]);
+                                                        const fileList = Array.from((otherImagesRef.current || []) as File[]);
                                                         const newList = fileList.filter((_, i) => i !== idx);
 
                                                         // rebuild FileList manually
                                                         const dt = new DataTransfer();
                                                         newList.forEach((f) => dt.items.add(f));
-
-                                                        form.setValue("otherImages", dt.files);
+                                                        otherImagesRef.current = dt.files;                                                        
                                                     }}
                                                     className="absolute top-1 right-1 bg-black/70 text-white text-[10px] px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition"
                                                 >
