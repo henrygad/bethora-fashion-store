@@ -6,7 +6,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import AuthProvider from "@/context/auth-context";
 import ProductProvider from "@/context/product-context";
-
+import CartProvider from "@/context/cart-context";
+import Provider from "./Provider";
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -45,13 +46,15 @@ export default function RootLayout({
       <body className={`font-sans antialiased`}>
         <AuthProvider>
           <ProductProvider>
-            <>
-              {children}
-              <Analytics />
-              <Toaster richColors closeButton position="top-right" duration={5000} />
-            </>
+            <CartProvider>
+              <Provider>
+                {children}
+              </Provider>
+            </CartProvider>
           </ProductProvider>
         </AuthProvider>
+        <Analytics />
+        <Toaster richColors closeButton position="top-right" duration={5000} />
       </body>
     </html>
   )

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Link from "next/link"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -9,30 +9,28 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ArrowRight } from "lucide-react"
 import Image from "next/image"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay";
+import { useProduct } from "@/context/product-context"
 
-const FEATURED_PRODUCTS = [
-  {
-    id: "1",
-    name: "Classic White T-Shirt",
-    category: "Men",
-    price: 49,
-    image: "/white-tshirt.png",
-    rating: 4.8,
-  },
-  { id: "2", name: "Black Slim Jeans", category: "Men", price: 89, image: "/black-jeans.jpg", rating: 4.5 },
-  { id: "3", name: "Summer Dress", category: "Women", price: 79, image: "/summer-dress.jpg", rating: 4.9 },
-  {
-    id: "4",
-    name: "Leather Handbag",
-    category: "Accessories",
-    price: 129,
-    image: "/leather-handbag.jpg",
-    rating: 4.7,
-  },
-]
+
+const HERO_IMAGES = [
+  "/bethora-hero-image-1.jpeg",
+  "/bethora-hero-image-2.jpeg",
+  "bethora-hero-image-3.jpeg"
+];
 
 export default function Home() {
+  const { products, loading } = useProduct();
   const [email, setEmail] = useState("")
+
+  const pluginRef = useRef(
+    Autoplay({
+      delay: 8000,
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
+    })
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -63,7 +61,26 @@ export default function Home() {
               </div>
             </div>
             <div className="hidden md:block h-96">
-              <Image width={384} height={384} src="/fashion-model-lifestyle.jpg" alt="Hero" className="w-full h-full object-cover rounded-lg" />
+
+              {/* <Image width={384} height={384} src="/fashion-model-lifestyle.jpg" alt="Hero" className="w-full h-full object-cover rounded-lg" /> */}
+
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                plugins={[pluginRef.current]}
+              >
+                <CarouselContent>
+                  {HERO_IMAGES.map((src, index) => (
+                    <CarouselItem key={index}>
+                      <Image width={384} height={384} src={src} alt="Hero" className="h-96 w-full object-cover rounded-lg" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent> :
+                <CarouselPrevious type="button" className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-white/50 p-2 rounded-full hover:bg-white" />
+                <CarouselNext type="button" className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-white/50 p-2 rounded-full hover:bg-white" />
+              </Carousel>
             </div>
           </div>
         </div>
@@ -104,11 +121,14 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-foreground mb-2">Featured Products</h2>
           <p className="text-muted-foreground">Curated selections of our best pieces</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {FEATURED_PRODUCTS.map((product) => (
-            <ProductCard key={product.id} {...product} />
+        {!loading ?
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
           ))}
-        </div>
+          </div> :
+          <div>loading...</div>
+        }
       </section>
 
       {/* Newsletter Section */}

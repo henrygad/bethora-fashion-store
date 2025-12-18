@@ -6,45 +6,20 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Star, Heart, Share2, Truck, RotateCw, Shield } from "lucide-react"
+import { useProduct } from "@/context/product-context"
+import Image from "next/image"
 
-const PRODUCTS = {
-  "1": {
-    id: "1",
-    name: "Classic White T-Shirt",
-    category: "Men",
-    price: 49,
-    rating: 4.8,
-    reviews: 128,
-    images: ["/white-tshirt-front.jpg", "/white-tshirt-back.jpg", "/white-tshirt-detail.jpg"],
-    description:
-      "A timeless classic. This premium cotton t-shirt is perfect for any occasion. Made with 100% organic cotton, it's soft, breathable, and designed to last.",
-    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
-    colors: ["White", "Black", "Navy", "Gray"],
-    details: ["Material: 100% Organic Cotton", "Weight: 180gsm", "Fit: Regular", "Care: Machine wash cold"],
-  },
-  "2": {
-    id: "2",
-    name: "Black Slim Jeans",
-    category: "Men",
-    price: 89,
-    rating: 4.5,
-    reviews: 84,
-    images: ["/black-jeans-front.jpg", "/black-jeans-back.jpg", "/black-jeans-detail.jpg"],
-    description:
-      "Experience comfort meets style with these premium slim-fit jeans. Perfect for casual outings or dressing up.",
-    sizes: ["28", "30", "32", "34", "36", "38"],
-    colors: ["Black", "Blue", "Gray"],
-    details: ["Material: 98% Cotton, 2% Elastane", "Fit: Slim", "Care: Machine wash cold, turn inside out"],
-  },
-}
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const id = await params.id;
+  const { getProduct } = useProduct();
 
-export default function ProductPage({ params }: { params: { id: string } }) {
-  const product = PRODUCTS[params.id as keyof typeof PRODUCTS]
-  
+  const product = getProduct(id);
+
   const [selectedSize, setSelectedSize] = useState("")
-  const [selectedColor, setSelectedColor] = useState(product?.colors[0] || "")
+  const [selectedColor, setSelectedColor] = useState(product?.colors![0] || "")
   const [quantity, setQuantity] = useState(1)
   const [mainImage, setMainImage] = useState(0)
+
 
   if (!product) {
     return (
@@ -61,6 +36,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
     )
   }
 
+  const images = [(product.primaryImage || ""), ...(product?.otherImages || [])]
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
@@ -71,23 +48,29 @@ export default function ProductPage({ params }: { params: { id: string } }) {
           <div className="space-y-4">
             <div className="bg-gray-100 rounded-lg overflow-hidden h-96 md:h-[600px]">
               <img
-                src={product.images[mainImage] || "/placeholder.svg"}
+                src={images[mainImage] || "/placeholder.svg"}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {product.images.map((img, idx) => (
+              {(images || []).map((img, idx) => (
                 <button
                   key={idx}
                   onClick={() => setMainImage(idx)}
-                  className={`h-20 rounded-lg overflow-hidden border-2 transition ${
-                    mainImage === idx ? "border-accent" : "border-border"
-                  }`}
+                  className={`h-20 rounded-lg overflow-hidden border-2 transition ${mainImage === idx ? "border-accent" : "border-border"
+                    }`}
                 >
-                  <img src={img || "/placeholder.svg"} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
+                  <Image
+                    src={img || "/placeholder.svg"}
+                    alt={`View ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                    width={200}
+                    height={200}
+                  />
                 </button>
-              ))}
+              ))
+              }
             </div>
           </div>
 
@@ -104,12 +87,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-5 h-5 ${i < Math.floor(product.rating) ? "fill-accent text-accent" : "text-border"}`}
+                    className={`w-5 h-5 ${i < Math.floor(product.rating || 0) ? "fill-accent text-accent" : "text-border"}`}
                   />
                 ))}
               </div>
               <span className="text-sm text-muted-foreground">
-                {product.rating} ({product.reviews} reviews)
+                {product.rating} ({product.reviews || 0} reviews)
               </span>
             </div>
 
@@ -123,13 +106,12 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div>
               <h3 className="font-semibold mb-3">Color</h3>
               <div className="flex gap-2">
-                {product.colors.map((color) => (
+                {(product.colors || []).map((color) => (
                   <button
                     key={color}
                     onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-lg border-2 transition ${
-                      selectedColor === color ? "border-accent bg-accent/10" : "border-border hover:border-accent"
-                    }`}
+                    className={`px-4 py-2 rounded-lg border-2 transition ${selectedColor === color ? "border-accent bg-accent/10" : "border-border hover:border-accent"
+                      }`}
                   >
                     {color}
                   </button>
@@ -141,15 +123,14 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div>
               <h3 className="font-semibold mb-3">Size</h3>
               <div className="grid grid-cols-4 gap-2">
-                {product.sizes.map((size) => (
+                {(product.sizes || []).map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
-                    className={`py-2 rounded-lg border-2 transition font-medium ${
-                      selectedSize === size
+                    className={`py-2 rounded-lg border-2 transition font-medium ${selectedSize === size
                         ? "border-accent bg-accent text-accent-foreground"
                         : "border-border hover:border-accent"
-                    }`}
+                      }`}
                   >
                     {size}
                   </button>
@@ -223,7 +204,7 @@ export default function ProductPage({ params }: { params: { id: string } }) {
             <div className="border-t pt-6">
               <h3 className="font-semibold mb-3">Product Details</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                {product.details.map((detail, idx) => (
+                {(product.details || []).map((detail, idx) => (
                   <li key={idx}>{detail}</li>
                 ))}
               </ul>

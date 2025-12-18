@@ -20,4 +20,10 @@ export interface ProductType {
     updatedAt?: Date | null;        // Optional update timestamp
 
     status: "Active" | "Out of stock" | "Sold" | "Inactive"
+
+    gender?: string; // adding this later to product editor
+    sizes?: string[]; // adding this later to product editor
+    details?: string[]; // adding this later to product editor
+    rating?: number;
+    reviews?: number
 }

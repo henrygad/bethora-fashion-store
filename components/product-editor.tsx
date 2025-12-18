@@ -218,7 +218,7 @@ export default function ProductEditor({ data_to_edit }: { data_to_edit: ProductT
 
         } catch (err) {
             console.error("Update product error:", err);
-            toast.error("Error creating product");
+            toast.error("Error updating product");
         } finally {
             setLoading(false);
         }

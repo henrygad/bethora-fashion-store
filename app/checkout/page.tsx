@@ -8,13 +8,10 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const CHECKOUT_ITEMS = [
-  { id: "1", name: "Classic White T-Shirt", price: 49, quantity: 2, image: "/white-tshirt.png" },
-  { id: "2", name: "Black Slim Jeans", price: 89, quantity: 1, image: "/black-jeans.jpg" },
-]
+import { useCart } from "@/context/cart-context"
 
 export default function CheckoutPage() {
+  const { carts } = useCart();
   const [formData, setFormData] = useState({
     email: "",
     firstName: "",
@@ -26,10 +23,11 @@ export default function CheckoutPage() {
     country: "",
   })
 
-  const subtotal = 227
-  const shipping = 0
-  const tax = 18.16
-  const total = 245.16
+  const subtotal = carts.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shipping = subtotal > 50 ? 0 : 10
+  const tax = Math.round(subtotal * 0.08 * 100) / 100
+  const total = subtotal + shipping + tax
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -153,10 +151,10 @@ export default function CheckoutPage() {
           <div className="bg-gray-50 rounded-lg p-6 h-fit">
             <h2 className="text-xl font-bold text-foreground mb-4">Order Summary</h2>
             <div className="space-y-3 mb-4 pb-4 border-b max-h-64 overflow-y-auto">
-              {CHECKOUT_ITEMS.map((item) => (
+              {(carts || []).map((item) => (
                 <div key={item.id} className="flex gap-3">
                   <img
-                    src={item.image || "/placeholder.svg"}
+                    src={item.primaryImage || "/placeholder.svg"}
                     alt={item.name}
                     className="w-16 h-16 object-cover rounded"
                   />

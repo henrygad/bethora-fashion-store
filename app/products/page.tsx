@@ -5,108 +5,18 @@ import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
 import { ChevronDown } from "lucide-react"
-
-const ALL_PRODUCTS = [
-  {
-    id: "1",
-    name: "Classic White T-Shirt",
-    category: "Men",
-    gender: "men",
-    price: 49,
-    image: "/white-tshirt.png",
-    rating: 4.8,
-    sizes: ["XS", "S", "M", "L", "XL"],
-  },
-  {
-    id: "2",
-    name: "Black Slim Jeans",
-    category: "Men",
-    gender: "men",
-    price: 89,
-    image: "/black-jeans.jpg",
-    rating: 4.5,
-    sizes: ["28", "30", "32", "34", "36"],
-  },
-  {
-    id: "3",
-    name: "Navy Blazer",
-    category: "Men",
-    gender: "men",
-    price: 149,
-    image: "/navy-blazer.jpg",
-    rating: 4.9,
-    sizes: ["S", "M", "L", "XL"],
-  },
-  {
-    id: "4",
-    name: "Summer Dress",
-    category: "Women",
-    gender: "women",
-    price: 79,
-    image: "/summer-dress.jpg",
-    rating: 4.9,
-    sizes: ["XS", "S", "M", "L", "XL"],
-  },
-  {
-    id: "5",
-    name: "White Sneakers",
-    category: "Women",
-    gender: "women",
-    price: 95,
-    image: "/white-sneakers.jpg",
-    rating: 4.6,
-    sizes: ["5", "6", "7", "8", "9", "10"],
-  },
-  {
-    id: "6",
-    name: "Yoga Pants",
-    category: "Women",
-    gender: "women",
-    price: 65,
-    image: "/yoga-pants.jpg",
-    rating: 4.7,
-    sizes: ["XS", "S", "M", "L", "XL"],
-  },
-  {
-    id: "7",
-    name: "Leather Handbag",
-    category: "Accessories",
-    gender: "women",
-    price: 129,
-    image: "/leather-handbag.jpg",
-    rating: 4.7,
-    sizes: ["One Size"],
-  },
-  {
-    id: "8",
-    name: "Sunglasses",
-    category: "Accessories",
-    gender: "unisex",
-    price: 99,
-    image: "/stylish-sunglasses.png",
-    rating: 4.4,
-    sizes: ["One Size"],
-  },
-  {
-    id: "9",
-    name: "Wool Scarf",
-    category: "Accessories",
-    gender: "unisex",
-    price: 45,
-    image: "/wool-scarf.jpg",
-    rating: 4.8,
-    sizes: ["One Size"],
-  },
-]
+import { useProduct } from "@/context/product-context"
 
 export default function ProductsPage() {
+  const { products } = useProduct();
+
   const [sortBy, setSortBy] = useState("featured")
   const [selectedGender, setSelectedGender] = useState("all")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [priceRange, setPriceRange] = useState([0, 200])
 
   const filteredProducts = useMemo(() => {
-    let filtered = ALL_PRODUCTS
+    let filtered = products;
 
     if (selectedGender !== "all") {
       filtered = filtered.filter((p) => p.gender === selectedGender)
@@ -123,11 +33,11 @@ export default function ProductsPage() {
     } else if (sortBy === "price-high") {
       filtered = [...filtered].sort((a, b) => b.price - a.price)
     } else if (sortBy === "rating") {
-      filtered = [...filtered].sort((a, b) => b.rating - a.rating)
+      filtered = [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0))
     }
 
     return filtered
-  }, [sortBy, selectedGender, selectedCategory, priceRange])
+  }, [sortBy, selectedGender, selectedCategory, priceRange, products])
 
   return (
     <div className="min-h-screen bg-white">
@@ -223,7 +133,7 @@ export default function ProductsPage() {
             {filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} {...product} />
+                  <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (

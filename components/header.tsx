@@ -5,10 +5,13 @@ import { ShoppingCart, Search, Menu, X, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useCart } from "@/context/cart-context"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const router = useRouter();
+  const { totalQuantity } = useCart();
+
 
   return (
     <header className="border-b bg-white sticky top-0 z-40">
@@ -50,10 +53,15 @@ export function Header() {
             >
               <User className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => router.push("/cart")}
+            >
               <ShoppingCart className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-4 h-4 bg-accent text-accent-foreground text-xs rounded-full flex items-center justify-center">
-                0
+                {totalQuantity}
               </span>
             </Button>
 
