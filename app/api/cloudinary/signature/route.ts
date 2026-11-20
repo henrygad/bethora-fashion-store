@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { errorResponse, HttpError, requireAdmin, requireUser } from "@/lib/server/auth";
 
+export const runtime = "nodejs";
+
 interface SignatureRequest {
   purpose?: "product" | "avatar";
 }

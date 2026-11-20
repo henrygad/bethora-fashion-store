@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { errorResponse, HttpError, requireAdmin } from "@/lib/server/auth";
 
+export const runtime = "nodejs";
+
 export async function POST(req: Request) {
   try {
     await requireAdmin(req);

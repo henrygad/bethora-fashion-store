@@ -78,9 +78,17 @@ export default function CheckoutPage() {
           address: deliveryAddress,
         }),
       });
-      const result = await response.json() as { whatsappUrl?: string; error?: string };
+      const responseBody = await response.text();
+      let result: { whatsappUrl?: string; error?: string } = {};
+      if (responseBody) {
+        try {
+          result = JSON.parse(responseBody) as { whatsappUrl?: string; error?: string };
+        } catch {
+          throw new Error(`The server returned an invalid response (HTTP ${response.status}). Please try again.`);
+        }
+      }
       if (!response.ok || !result.whatsappUrl) {
-        throw new Error(result.error || "Could not create your availability request");
+        throw new Error(result.error || `Could not create your availability request (HTTP ${response.status})`);
       }
       clearCart();
       window.location.assign(result.whatsappUrl);

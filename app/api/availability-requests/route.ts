@@ -9,6 +9,9 @@ import { NIGERIAN_STATES } from "@/types";
 import type { Address, CartItem, Order, Product } from "@/types";
 import { productUrl } from "@/lib/site";
 
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 const MAX_LINES = 25;
 const MAX_QTY_PER_LINE = 20;
 
@@ -114,7 +117,7 @@ export async function POST(request: Request) {
 
     const requestedItems = validateItems(body.items);
     const address = validateAddress(body.address, user.uid);
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const orderId = createHash("sha256").update(`${user.uid}:${requestId}`).digest("hex").slice(0, 24);
     const orderRef = db.collection("orders").doc(orderId);
     const productRefs = requestedItems.map((item) => db.collection("products").doc(item.productId));

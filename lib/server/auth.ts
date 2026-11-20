@@ -19,15 +19,21 @@ export async function requireUser(request: Request): Promise<DecodedIdToken> {
   if (!token) throw new HttpError(401, "Authentication required");
 
   try {
-    return await getAdminAuth().verifyIdToken(token, true);
-  } catch {
+    const auth = await getAdminAuth();
+    return await auth.verifyIdToken(token, true);
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "";
+    if (!code.startsWith("auth/")) throw error;
     throw new HttpError(401, "Invalid or expired session");
   }
 }
 
 export async function requireAdmin(request: Request): Promise<DecodedIdToken> {
   const user = await requireUser(request);
-  const profile = await getAdminDb().collection("users").doc(user.uid).get();
+  const db = await getAdminDb();
+  const profile = await db.collection("users").doc(user.uid).get();
   if (!profile.exists || profile.data()?.role !== "admin") {
     throw new HttpError(403, "Admin access required");
   }
