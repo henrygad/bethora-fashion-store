@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import type { Order } from "@/types";
+import { formatDeliveryAddress } from "@/lib/address";
 
 interface Props {
     order: Order | null;
@@ -9,7 +10,15 @@ interface Props {
     onStatusUpdate: (id: string, status: Order["status"]) => void;
 }
 
-const STATUSES: Order["status"][] = ["Processing", "Shipped", "Delivered"];
+const STATUSES: Order["status"][] = [
+    "Pending Availability",
+    "Availability Confirmed",
+    "Processing",
+    "Shipped",
+    "Delivered",
+    "Unavailable",
+    "Cancelled",
+];
 
 export default function OrderStatusModal({ order, onClose, onStatusUpdate }: Props) {
     if (!order) return null;
@@ -32,7 +41,7 @@ export default function OrderStatusModal({ order, onClose, onStatusUpdate }: Pro
                     <p className="text-xs text-gray-500 mb-0.5">Customer</p>
                     <p className="text-sm font-semibold">{order.address.name}</p>
                     <p className="text-xs text-gray-500">{order.address.phone}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{order.address.address}, {order.address.state}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{formatDeliveryAddress(order.address)}</p>
                 </div>
 
                 {/* Items */}
@@ -59,7 +68,7 @@ export default function OrderStatusModal({ order, onClose, onStatusUpdate }: Pro
 
                 {/* Status update */}
                 <p className="text-xs font-bold text-gray-500 uppercase mb-2">Update Status</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                     {STATUSES.map((s) => (
                         <button
                             key={s}

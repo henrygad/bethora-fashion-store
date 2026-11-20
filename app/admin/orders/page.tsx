@@ -10,8 +10,9 @@ import { Search, ChevronRight, CheckCircle2, Truck, Clock, X } from "lucide-reac
 
 function statusStyle(status: string) {
     if (status === "Delivered") return { bg: "bg-green-50", text: "text-green-700", icon: CheckCircle2 };
+    if (status === "Availability Confirmed") return { bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle2 };
     if (status === "Shipped") return { bg: "bg-blue-50", text: "text-blue-700", icon: Truck };
-    if (status === "Cancelled") return { bg: "bg-red-50", text: "text-red-700", icon: X };
+    if (status === "Cancelled" || status === "Unavailable") return { bg: "bg-red-50", text: "text-red-700", icon: X };
     return { bg: "bg-primary-50", text: "text-primary-700", icon: Clock };
 }
 

@@ -2,36 +2,34 @@
 
 import { useState } from "react";
 import Navbar from "@/components/shared/Navbar";
-import { Mail, Phone, MessageCircle, MapPin, Clock, CheckCircle2 } from "lucide-react";
+import { Mail, Phone, MessageCircle, MapPin, Clock } from "lucide-react";
+import { WHATSAPP_DISPLAY, WHATSAPP_TEL, WHATSAPP_URL } from "@/lib/contact";
 
 const SUBJECTS = ["Order Issue", "Return Request", "Product Inquiry", "Delivery Issue", "Other"];
 
 const ICON_CARDS = [
     { icon: Mail, label: "Email Us", value: "support@bethora.com.ng", href: "mailto:support@bethora.com.ng" },
-    { icon: Phone, label: "Call Us", value: "+234 800 000 0000", href: "tel:+2348000000000" },
-    { icon: MessageCircle, label: "WhatsApp Us", value: "+234 800 000 0000", href: "https://wa.me/2348000000000" },
+    { icon: Phone, label: "Call Us", value: WHATSAPP_DISPLAY, href: `tel:${WHATSAPP_TEL}` },
+    { icon: MessageCircle, label: "WhatsApp Us", value: WHATSAPP_DISPLAY, href: WHATSAPP_URL },
 ];
 
 const EMPTY_FORM = { name: "", email: "", subject: "", message: "" };
 
 export default function ContactPage() {
     const [form, setForm] = useState({ ...EMPTY_FORM });
-    const [submitting, setSubmitting] = useState(false);
-    const [sent, setSent] = useState(false);
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         if (!form.name || !form.email || !form.subject || !form.message) return;
-        setSubmitting(true);
-        setTimeout(() => {
-            setSubmitting(false);
-            setSent(true);
-        }, 900);
-    }
-
-    function sendAnother() {
-        setForm({ ...EMPTY_FORM });
-        setSent(false);
+        const message = [
+            "*Bethora support request*",
+            `Name: ${form.name}`,
+            `Email: ${form.email}`,
+            `Subject: ${form.subject}`,
+            "",
+            form.message,
+        ].join("\n");
+        window.open(`${WHATSAPP_URL}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
     }
 
     return (
@@ -53,7 +51,7 @@ export default function ContactPage() {
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <Phone size={16} className="text-primary-500 mt-0.5 shrink-0" />
-                                    <span className="text-gray-600">+234 800 000 0000</span>
+                                    <span className="text-gray-600">{WHATSAPP_DISPLAY}</span>
                                 </div>
                                 <div className="flex items-start gap-3">
                                     <MapPin size={16} className="text-primary-500 mt-0.5 shrink-0" />
@@ -86,24 +84,7 @@ export default function ContactPage() {
 
                     {/* Right — form */}
                     <div className="bg-white rounded-2xl border border-gray-100 p-6">
-                        {sent ? (
-                            <div className="flex flex-col items-center justify-center text-center py-10">
-                                <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
-                                    <CheckCircle2 size={32} className="text-green-500" />
-                                </div>
-                                <h3 className="font-bold text-lg mb-1">Message Sent!</h3>
-                                <p className="text-sm text-gray-500 mb-6">
-                                    We&apos;ll get back to you within 24 hours.
-                                </p>
-                                <button
-                                    onClick={sendAnother}
-                                    className="bg-primary-400 text-gray-900 font-bold px-6 py-2.5 rounded-full hover:bg-primary-500 transition active:scale-95"
-                                >
-                                    Send Another Message
-                                </button>
-                            </div>
-                        ) : (
-                            <form onSubmit={handleSubmit} className="space-y-3">
+                        <form onSubmit={handleSubmit} className="space-y-3">
                                 <input
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -138,13 +119,11 @@ export default function ContactPage() {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={submitting}
-                                    className="w-full bg-primary-400 text-gray-900 font-bold py-3 rounded-full hover:bg-primary-500 transition active:scale-95 disabled:opacity-60"
+                                    className="w-full bg-primary-400 text-gray-900 font-bold py-3 rounded-full hover:bg-primary-500 transition active:scale-95"
                                 >
-                                    {submitting ? "Sending..." : "Send Message"}
+                                    Continue on WhatsApp
                                 </button>
-                            </form>
-                        )}
+                        </form>
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@ import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, sendPasswordResetEmail, onAuthStateChanged, User,
 } from "firebase/auth";
-import { doc, setDoc, updateDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "./config";
 import type { UserProfile } from "@/types";
 
@@ -27,16 +27,12 @@ export async function resetPassword(email: string) {
 }
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const q = query(collection(db, "users"), where("uid", "==", uid));
-  const snap = await getDocs(q);
-  return snap.empty ? null : (snap.docs[0].data() as UserProfile);
+  const snap = await getDoc(doc(db, "users", uid));
+  return snap.exists() ? (snap.data() as UserProfile) : null;
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
-  const q = query(collection(db, "users"), where("uid", "==", uid));
-  const snap = await getDocs(q);
-  if (snap.empty) throw new Error("User profile not found");
-  return updateDoc(snap.docs[0].ref, data);
+  return updateDoc(doc(db, "users", uid), data);
 }
 
 export function onAuthChange(cb: (user: User | null) => void) {

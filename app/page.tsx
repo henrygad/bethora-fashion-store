@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import Navbar from "@/components/shared/Navbar";
 import HeroSlider from "@/components/storefront/HeroSlider";
 import CategoryRow from "@/components/storefront/CategoryRow";
 import FeaturedProducts from "@/components/storefront/FeaturedProducts";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (

@@ -2,30 +2,31 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Banknote, CreditCard, Plus } from "lucide-react";
+import { ChevronLeft, MapPin, MessageCircle, Plus } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { createOrder, getProductById } from "@/lib/firebase/firestore";
 import { getAddressesByUser } from "@/lib/firebase/firestore";
-import { logActivity } from "@/lib/cookies";
 import { NIGERIAN_STATES } from "@/types";
 import type { Address } from "@/types";
+import { formatDeliveryAddress, isNigerianPhone } from "@/lib/address";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, delivery, total, clearCart } = useCart();
-  const { user } = useAuth();
+  const { items, delivery, total, clearCart, ready: cartReady } = useCart();
+  const { user, loading: authLoading } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddrId, setSelectedAddrId] = useState<string | null>(null);
   const [addingNew, setAddingNew] = useState(false);
-  const [payment, setPayment] = useState<"pod" | "transfer">("pod");
   const [loading, setLoading] = useState(false);
-  type FormState = { label: string; name: string; phone: string; address: string; state: string };
-  const [form, setForm] = useState<FormState>({ label: "Home", name: "", phone: "", address: "", state: "" });
+  const [submitError, setSubmitError] = useState("");
+  const [requestId] = useState(() => crypto.randomUUID());
+  type FormState = { label: string; name: string; phone: string; address: string; city: string; lga: string; state: string };
+  const [form, setForm] = useState<FormState>({ label: "Home", name: "", phone: "", address: "", city: "", lga: "", state: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { router.push("/login"); return; }
     getAddressesByUser(user.uid).then((addrs) => {
       setAddresses(addrs);
@@ -33,24 +34,27 @@ export default function CheckoutPage() {
       if (def) setSelectedAddrId(def.id);
       else setAddingNew(true);
     });
-  }, [user]);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (items.length === 0) router.push("/cart");
-  }, [items]);
+    if (cartReady && items.length === 0) router.push("/cart");
+  }, [items, cartReady, router]);
 
   function validate() {
     const errs: Record<string, string> = {};
-    if (!form.name.trim()) errs.name = "Required";
-    if (!form.phone.trim()) errs.phone = "Required";
-    if (!form.address.trim()) errs.address = "Required";
-    if (!form.state) errs.state = "Required";
+    if (!form.name.trim()) errs.name = "Enter the recipient's full name.";
+    if (!isNigerianPhone(form.phone)) errs.phone = "Enter a valid Nigerian phone number.";
+    if (!form.state) errs.state = "Select a state.";
+    if (!form.lga.trim()) errs.lga = "Enter the local government area.";
+    if (!form.city.trim()) errs.city = "Enter the city or town.";
+    if (!form.address.trim()) errs.address = "Enter the street address.";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
 
   async function placeOrder() {
     if (!user) return;
+    setSubmitError("");
     let deliveryAddress: Address;
 
     if (addingNew) {
@@ -64,43 +68,41 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      const products = await Promise.all(items.map((item) => getProductById(item.productId)));
-      const unavailable = products.some((p, i) => !p || p.status !== "Active" || p.stock < items[i].qty);
-      if (unavailable) {
-        router.push(`/order-confirmation/failed?reason=${encodeURIComponent("One or more items in your cart are no longer available in the quantity you selected.")}`);
-        return;
-      }
-
-      const orderId = await createOrder({
-        userId: user.uid,
-        items,
-        subtotal,
-        delivery,
-        total,
-        address: deliveryAddress,
-        paymentMethod: payment,
-        status: "Processing",
-        createdAt: Date.now(),
+      const idToken = await user.getIdToken();
+      const response = await fetch("/api/availability-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+        body: JSON.stringify({
+          requestId,
+          items: items.map(({ productId, qty, size, color }) => ({ productId, qty, size, color })),
+          address: deliveryAddress,
+        }),
       });
-      logActivity("checkout", { orderId, total });
+      const result = await response.json() as { whatsappUrl?: string; error?: string };
+      if (!response.ok || !result.whatsappUrl) {
+        throw new Error(result.error || "Could not create your availability request");
+      }
       clearCart();
-      router.push(`/order-confirmation/${orderId}`);
-    } catch (e) {
-      console.error(e);
-      router.push(`/order-confirmation/failed?reason=${encodeURIComponent("We couldn't reach our servers to place your order. Please check your connection and try again.")}`);
+      window.location.assign(result.whatsappUrl);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "We could not create your request. Please try again.");
     } finally {
       setLoading(false);
     }
   }
 
-  const field = (key: keyof FormState, placeholder: string, type = "text") => (
+  const field = (key: keyof FormState, label: string, placeholder: string, type = "text", autoComplete?: string) => (
     <div>
+      <label htmlFor={"delivery-" + key} className="mb-1.5 block text-xs font-semibold text-gray-700">{label} <span className="text-red-500">*</span></label>
       <input
+        id={"delivery-" + key}
         type={type}
+        autoComplete={autoComplete}
         value={form[key]}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value } as FormState)}
+        onChange={(e) => { setForm({ ...form, [key]: e.target.value } as FormState); setErrors((current) => ({ ...current, [key]: "" })); }}
         placeholder={placeholder}
-        className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 transition ${errors[key] ? "border-red-400" : "border-gray-200"}`}
+        className={`w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-400 transition ${errors[key] ? "border-red-400" : "border-gray-200"}`}
+        aria-invalid={Boolean(errors[key])}
       />
       {errors[key] && <p className="text-xs text-red-500 mt-1">{errors[key]}</p>}
     </div>
@@ -130,7 +132,7 @@ export default function CheckoutPage() {
                 >
                   <p className="font-semibold">{addr.label} {addr.isDefault && <span className="text-xs text-green-600">(Default)</span>}</p>
                   <p className="text-gray-500 text-xs mt-0.5">{addr.name} · {addr.phone}</p>
-                  <p className="text-gray-500 text-xs">{addr.address}, {addr.state}</p>
+                  <p className="text-gray-500 text-xs">{formatDeliveryAddress(addr)}</p>
                 </button>
               ))}
               <button
@@ -146,41 +148,48 @@ export default function CheckoutPage() {
 
         {/* New address form */}
         {addingNew && (
-          <div className="mb-5 space-y-3">
-            {addresses.length === 0 && <p className="text-sm font-semibold text-gray-700">Delivery Details</p>}
-            {field("name", "Full Name")}
-            {field("phone", "Phone Number", "tel")}
-            {field("address", "Street Address")}
-            <select
-              value={form.state}
-              onChange={(e) => setForm({ ...form, state: e.target.value })}
-              className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary-400 bg-white transition ${errors.state ? "border-red-400" : "border-gray-200"}`}
-            >
-              <option value="">Select State</option>
-              {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            {errors.state && <p className="text-xs text-red-500">{errors.state}</p>}
+          <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-4 sm:p-5">
+            <div className="mb-4 flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-700"><MapPin size={18} /></span>
+              <div>
+                <p className="text-sm font-bold text-gray-900">Delivery Details</p>
+                <p className="mt-0.5 text-xs text-gray-500">Enter the exact Nigerian address where the order should be delivered.</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {field("name", "Recipient's full name", "e.g. Ada Okafor", "text", "name")}
+              {field("phone", "Phone number", "e.g. 0801 234 5678", "tel", "tel")}
+              <div>
+                <label htmlFor="delivery-state" className="mb-1.5 block text-xs font-semibold text-gray-700">State <span className="text-red-500">*</span></label>
+                <select
+                  id="delivery-state"
+                  value={form.state}
+                  onChange={(e) => { setForm({ ...form, state: e.target.value }); setErrors((current) => ({ ...current, state: "" })); }}
+                  autoComplete="address-level1"
+                  className={`w-full rounded-xl border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-400 bg-white transition ${errors.state ? "border-red-400" : "border-gray-200"}`}
+                  aria-invalid={Boolean(errors.state)}
+                >
+                  <option value="">Select state</option>
+                  {NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {field("lga", "Local government area", "e.g. Ikeja")}
+                {field("city", "City or town", "e.g. Ikeja", "text", "address-level2")}
+              </div>
+              {field("address", "House number and street address", "e.g. 12 Allen Avenue", "text", "street-address")}
+            </div>
           </div>
         )}
 
-        {/* Payment method */}
-        <div className="mb-5">
-          <p className="text-sm font-semibold text-gray-700 mb-2">Payment Method</p>
-          <div className="space-y-2">
-            <button
-              onClick={() => setPayment("pod")}
-              className={`w-full flex items-center gap-3 border rounded-xl px-4 py-3 text-sm transition ${payment === "pod" ? "border-primary-400 bg-primary-50" : "border-gray-200 bg-white"}`}
-            >
-              <Banknote size={18} className="text-gray-600" />
-              <span className="font-medium">Pay on Delivery</span>
-            </button>
-            <button
-              onClick={() => setPayment("transfer")}
-              className={`w-full flex items-center gap-3 border rounded-xl px-4 py-3 text-sm transition ${payment === "transfer" ? "border-primary-400 bg-primary-50" : "border-gray-200 bg-white"}`}
-            >
-              <CreditCard size={18} className="text-gray-600" />
-              <span className="font-medium">Bank Transfer</span>
-            </button>
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-green-100 bg-green-50 p-4">
+          <MessageCircle size={20} className="text-green-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-green-900">Confirm availability on WhatsApp</p>
+            <p className="text-xs text-green-800 mt-1 leading-relaxed">
+              We source products after you order. You will not be asked to pay until our team confirms that every item is available.
+            </p>
           </div>
         </div>
 
@@ -197,17 +206,19 @@ export default function CheckoutPage() {
             <span>{delivery === 0 ? "Free" : `₦${delivery.toLocaleString()}`}</span>
           </div>
           <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-100">
-            <span>Total</span>
+            <span>Estimated Total</span>
             <span>₦{total.toLocaleString()}</span>
           </div>
         </div>
+
+        {submitError && <p className="text-sm text-red-600 mb-4 text-center">{submitError}</p>}
 
         <button
           onClick={placeOrder}
           disabled={loading}
           className="w-full bg-primary-400 text-gray-900 font-bold py-3 rounded-full hover:bg-primary-500 transition active:scale-95 disabled:opacity-60"
         >
-          {loading ? "Placing Order..." : "Place Order"}
+          {loading ? "Preparing WhatsApp Request..." : "Confirm Availability on WhatsApp"}
         </button>
       </div>
     </div>

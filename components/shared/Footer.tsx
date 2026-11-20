@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { WHATSAPP_DISPLAY } from "@/lib/contact";
 
 export default function Footer() {
     return (
@@ -42,7 +43,7 @@ export default function Footer() {
                     <p className="text-sm font-semibold text-white mb-3">Contact Info</p>
                     <ul className="space-y-2 text-xs text-gray-400">
                         <li>support@bethora.com.ng</li>
-                        <li>+234 800 000 0000</li>
+                        <li>{WHATSAPP_DISPLAY}</li>
                     </ul>
                 </div>
             </div>

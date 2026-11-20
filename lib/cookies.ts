@@ -8,11 +8,16 @@ export function hasCookieConsent(): boolean {
   return Cookies.get(CONSENT_KEY) === "accepted";
 }
 
-export function setCookieConsent() {
-  Cookies.set(CONSENT_KEY, "accepted", { expires: 365 });
+export function hasCookieChoice(): boolean {
+  return Boolean(Cookies.get(CONSENT_KEY));
+}
+
+export function setCookieConsent(choice: "accepted" | "rejected") {
+  Cookies.set(CONSENT_KEY, choice, { expires: 365, sameSite: "lax", secure: location.protocol === "https:" });
 }
 
 export function trackProductView(productId: string) {
+  if (!hasCookieConsent()) return;
   const viewed = getViewedProducts();
   const updated = [productId, ...viewed.filter((id) => id !== productId)].slice(0, 20);
   Cookies.set(VIEWED_KEY, JSON.stringify(updated), { expires: 30 });
@@ -29,6 +34,7 @@ export function getOrCreateSessionId(): string {
 }
 
 export function logActivity(event: string, meta?: Record<string, unknown>) {
+  if (!hasCookieConsent()) return;
   const sessionId = getOrCreateSessionId();
   if (typeof window !== "undefined") {
     console.log("[activity]", { sessionId, event, meta, ts: Date.now() });

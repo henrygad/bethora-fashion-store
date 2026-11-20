@@ -7,22 +7,25 @@ import AccountSidebar from "@/components/shared/AccountSidebar";
 import { useAuth } from "@/context/AuthContext";
 import { getOrdersByUser } from "@/lib/firebase/firestore";
 import type { Order } from "@/types";
+import { formatDeliveryAddress } from "@/lib/address";
 import { ChevronRight, CheckCircle2, Truck, Clock, X, PackageCheck } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
-const TRACKING_STEPS = ["Order Placed", "Processing", "Shipped", "Delivered"];
+const TRACKING_STEPS = ["Availability Requested", "Availability Confirmed", "Processing", "Shipped", "Delivered"];
 
 function stepIndex(status: string) {
-    if (status === "Processing") return 1;
-    if (status === "Shipped") return 2;
-    if (status === "Delivered") return 3;
+    if (status === "Availability Confirmed") return 1;
+    if (status === "Processing") return 2;
+    if (status === "Shipped") return 3;
+    if (status === "Delivered") return 4;
     return 0;
 }
 
 function statusStyle(status: string) {
     if (status === "Delivered") return { bg: "bg-green-50", text: "text-green-700", icon: CheckCircle2 };
+    if (status === "Availability Confirmed") return { bg: "bg-emerald-50", text: "text-emerald-700", icon: CheckCircle2 };
     if (status === "Shipped") return { bg: "bg-blue-50", text: "text-blue-700", icon: Truck };
-    if (status === "Cancelled") return { bg: "bg-red-50", text: "text-red-700", icon: X };
+    if (status === "Cancelled" || status === "Unavailable") return { bg: "bg-red-50", text: "text-red-700", icon: X };
     return { bg: "bg-primary-50", text: "text-primary-700", icon: Clock };
 }
 
@@ -113,14 +116,14 @@ export default function OrdersPage() {
 
                                                 {/* Delivery address */}
                                                 <div className="bg-white rounded-xl p-3 border border-gray-100">
-                                                    <p className="text-xs font-semibold text-gray-500 mb-1">Delivered To</p>
+                                                    <p className="text-xs font-semibold text-gray-500 mb-1">Delivery Address</p>
                                                     <p className="text-xs font-medium">{order.address.name} · {order.address.phone}</p>
-                                                    <p className="text-xs text-gray-500">{order.address.address}, {order.address.state}</p>
+                                                    <p className="text-xs text-gray-500">{formatDeliveryAddress(order.address)}</p>
                                                 </div>
 
                                                 {/* Order total */}
                                                 <div className="flex justify-between text-sm font-bold border-t border-gray-100 pt-2">
-                                                    <span>Total Paid</span>
+                                                    <span>Estimated Total</span>
                                                     <span>₦{order.total.toLocaleString()}</span>
                                                 </div>
 
@@ -211,7 +214,15 @@ export default function OrdersPage() {
                                     ? "Your order has been delivered. Thank you for shopping with Bethora!"
                                     : tracking.status === "Shipped"
                                         ? "Your order is on its way. Estimated arrival in 1–2 business days."
-                                        : "Your order is being prepared and will ship soon. We'll notify you once it's on the way."}
+                                        : tracking.status === "Pending Availability"
+                                            ? "We are checking these products with our suppliers. Do not make payment until availability is confirmed."
+                                            : tracking.status === "Availability Confirmed"
+                                                ? "The products are available. Our team will share the next steps with you."
+                                                : tracking.status === "Unavailable"
+                                                    ? "One or more products are unavailable. Please contact us to choose alternatives."
+                                                    : tracking.status === "Cancelled"
+                                                        ? "This request has been cancelled."
+                                                        : "Your order is being prepared and will ship soon. We'll notify you once it's on the way."}
                             </p>
                         </div>
 
@@ -219,7 +230,7 @@ export default function OrdersPage() {
                         <div className="bg-gray-50 rounded-2xl p-4">
                             <p className="text-xs font-semibold text-gray-500 mb-1">Delivering To</p>
                             <p className="text-sm font-medium">{tracking.address.name} · {tracking.address.phone}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{tracking.address.address}, {tracking.address.state}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{formatDeliveryAddress(tracking.address)}</p>
                         </div>
                     </div>
                 </div>

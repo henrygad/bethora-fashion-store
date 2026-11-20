@@ -10,7 +10,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     useEffect(() => {
         if (!loading && (!user || profile?.role !== "admin")) router.push("/");
-    }, [user, profile, loading]);
+    }, [user, profile, loading, router]);
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">

@@ -41,12 +41,7 @@ export async function deleteProduct(id: string) {
   return deleteDoc(doc(db, "products", id));
 }
 
-// ── Orders ────────────────────────────────────────────
-export async function createOrder(order: Omit<Order, "id">): Promise<string> {
-  const ref = await addDoc(collection(db, "orders"), order);
-  return ref.id;
-}
-
+// Orders are created only by app/api/availability-requests after server-side validation.
 export async function getOrdersByUser(userId: string): Promise<Order[]> {
   const q = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
@@ -65,7 +60,7 @@ export async function getAllOrders(): Promise<Order[]> {
 }
 
 export async function updateOrderStatus(id: string, status: Order["status"]) {
-  return updateDoc(doc(db, "orders", id), { status });
+  return updateDoc(doc(db, "orders", id), { status, updatedAt: Date.now() });
 }
 
 // ── Addresses ─────────────────────────────────────────

@@ -36,6 +36,8 @@ export interface Address {
   name: string;
   phone: string;
   address: string;
+  city: string;
+  lga: string;
   state: string;
   isDefault: boolean;
 }
@@ -48,9 +50,17 @@ export interface Order {
   delivery: number;
   total: number;
   address: Address;
-  paymentMethod: "pod" | "transfer";
-  status: "Processing" | "Shipped" | "Delivered" | "Cancelled";
+  paymentMethod: "whatsapp" | "pod" | "transfer";
+  status:
+    | "Pending Availability"
+    | "Availability Confirmed"
+    | "Processing"
+    | "Shipped"
+    | "Delivered"
+    | "Unavailable"
+    | "Cancelled";
   createdAt: number;
+  updatedAt?: number;
 }
 
 export interface UserProfile {
@@ -64,28 +74,43 @@ export interface UserProfile {
 }
 
 export const NIGERIAN_STATES = [
-  "Lagos",
-  "Abuja (FCT)",
-  "Oyo",
-  "Rivers",
-  "Kano",
-  "Ogun",
-  "Kaduna",
-  "Enugu",
-  "Delta",
-  "Edo",
-  "Anambra",
-  "Plateau",
-  "Imo",
   "Abia",
-  "Kwara",
-  "Benue",
-  "Niger",
-  "Sokoto",
-  "Kogi",
-  "Cross River",
+  "Adamawa",
   "Akwa Ibom",
-  "Other",
+  "Anambra",
+  "Abuja (FCT)",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
 ];
 
 export const CATEGORIES = [

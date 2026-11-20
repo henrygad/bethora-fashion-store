@@ -12,7 +12,9 @@ import { ShoppingBag, Heart, MapPin, ChevronRight, Eye } from "lucide-react";
 
 function statusStyle(status: string) {
     if (status === "Delivered") return "bg-green-50 text-green-700";
+    if (status === "Availability Confirmed") return "bg-emerald-50 text-emerald-700";
     if (status === "Shipped") return "bg-blue-50 text-blue-700";
+    if (status === "Unavailable" || status === "Cancelled") return "bg-red-50 text-red-700";
     return "bg-primary-50 text-primary-700";
 }
 

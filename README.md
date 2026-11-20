@@ -31,6 +31,8 @@ Other scripts:
 npm run build   # Production build
 npm run start   # Run a production build locally
 npm run lint    # ESLint
+npm run typecheck
+npm test        # Unit tests
 ```
 
 ### Environment variables
@@ -44,14 +46,22 @@ NEXT_PUBLIC_FIREBASE_PROJECT_ID=
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
 NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_SITE_URL=https://bethora.com.ng
+
+# Firebase Admin SDK (server only)
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
 
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
-NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
+
+# Optional abuse protection
+NEXT_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY=
 ```
 
-`CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` must **never** get a `NEXT_PUBLIC_` prefix — they authenticate server-side deletes in `app/api/cloudinary/delete/route.ts`. Prefixing them would leak the secret into the client bundle.
+`FIREBASE_PRIVATE_KEY`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` must **never** get a `NEXT_PUBLIC_` prefix. Prefixing them would leak the secrets into the client bundle.
 
 ## Project Structure
 
@@ -69,7 +79,7 @@ There is also no `hooks/` folder — `useAuth()` and `useCart()` are exported di
 
 ## Core Features
 
-- **Storefront** — homepage with hero slider and trending products, category-filtered product listing, product detail with size/color/qty picker, cart, checkout (saved addresses, Pay on Delivery / Bank Transfer), order confirmation (success and failure states).
+- **Storefront** — homepage with hero slider and trending products, category-filtered product listing, product detail with size/color/qty picker, cart, and a secure availability-request checkout that continues on WhatsApp before payment.
 - **Accounts** — signup/login/forgot-password, profile editing with deferred Cloudinary avatar upload, order history with tracking timeline, address book, wishlist.
 - **Admin dashboard** — revenue/orders overview with a sales chart, product CRUD with Cloudinary image upload, order status management, read-only customer directory. Gated behind `role === "admin"` on the user's Firestore profile.
 
@@ -77,11 +87,25 @@ There is also no `hooks/` folder — `useAuth()` and `useCart()` are exported di
 
 Firestore collections: `products`, `orders`, `addresses`, `users`. Full field definitions are in [`types/index.ts`](types/index.ts); read/write helpers are centralized in [`lib/firebase/firestore.ts`](lib/firebase/firestore.ts) — always go through those functions rather than calling Firestore directly from components.
 
-Order status flow: `Processing → Shipped → Delivered`, with `Cancelled` as a fourth terminal state.
+Request status flow: `Pending Availability → Availability Confirmed → Processing → Shipped → Delivered`, with `Unavailable` and `Cancelled` as terminal states.
 
-## Making a User an Admin
+## Fresh Firebase Setup
 
-Sign up normally, then in the Firestore console set that user's `users/{uid}` document field `role` to `"admin"`. Users created directly via Firebase Console → Authentication don't get a Firestore profile automatically — only the app's `signUp()` flow creates both; a Console-created user needs its `users/{uid}` document created by hand (see `CLAUDE.md` for the exact field list).
+Firestore is schemaless, so an empty project does not need collections created in advance. Products, orders, addresses, and customer profiles are created by the app when first used.
+
+To bootstrap the first administrator:
+
+1. In Firebase Console, enable Email/Password authentication.
+2. Create the user under Authentication → Users.
+3. Grant that user admin access from the project directory:
+
+```bash
+npm run admin:grant -- admin@example.com
+```
+
+The command uses the server-only Firebase Admin credentials in `.env.local`. It finds the Authentication user and safely creates or updates `users/{uid}` in Firestore with `role: "admin"`. Never add an admin role through client-side signup code.
+
+Publish `firestore.rules` and `firestore.indexes.json` in Firebase Console before opening the store to customers.
 
 ## Brand
 

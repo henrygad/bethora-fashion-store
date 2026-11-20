@@ -48,11 +48,11 @@ export default function CartPage() {
                 <p className="text-sm text-gray-500">₦{item.price.toLocaleString()}</p>
               </div>
               <div className="flex items-center gap-2 bg-gray-100 rounded-full px-2 py-1">
-                <button onClick={() => changeQty(item.productId, -1)} className="active:scale-90"><Minus size={13} /></button>
+                <button onClick={() => changeQty(item.productId, -1, item.size, item.color)} className="active:scale-90"><Minus size={13} /></button>
                 <span className="w-5 text-center text-sm font-medium">{item.qty}</span>
-                <button onClick={() => changeQty(item.productId, 1)} className="active:scale-90"><Plus size={13} /></button>
+                <button onClick={() => changeQty(item.productId, 1, item.size, item.color)} className="active:scale-90"><Plus size={13} /></button>
               </div>
-              <button onClick={() => removeItem(item.productId)} className="text-gray-400 hover:text-red-500 transition active:scale-90">
+              <button onClick={() => removeItem(item.productId, item.size, item.color)} className="text-gray-400 hover:text-red-500 transition active:scale-90">
                 <X size={18} />
               </button>
             </div>

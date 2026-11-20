@@ -21,7 +21,9 @@ const SALES_DATA = [
 
 function statusStyle(status: string) {
     if (status === "Delivered") return "bg-green-50 text-green-700";
+    if (status === "Availability Confirmed") return "bg-emerald-50 text-emerald-700";
     if (status === "Shipped") return "bg-blue-50 text-blue-700";
+    if (status === "Unavailable" || status === "Cancelled") return "bg-red-50 text-red-700";
     return "bg-primary-50 text-primary-700";
 }
 
@@ -36,14 +38,15 @@ export default function AdminOverviewPage() {
             .finally(() => setLoading(false));
     }, []);
 
-    const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
-    const avgOrder = orders.length ? Math.round(totalRevenue / orders.length) : 0;
+    const activeRequests = orders.filter((o) => o.status !== "Cancelled" && o.status !== "Unavailable");
+    const totalRevenue = activeRequests.reduce((s, o) => s + o.total, 0);
+    const avgOrder = activeRequests.length ? Math.round(totalRevenue / activeRequests.length) : 0;
     const lowStock = products.filter((p) => p.stock <= 5).length;
 
     const stats = [
-        { icon: DollarSign, label: "Total Revenue", value: `₦${totalRevenue.toLocaleString()}`, trend: "+12%", up: true },
-        { icon: ShoppingBag, label: "Total Orders", value: orders.length, trend: "+8%", up: true },
-        { icon: TrendingUp, label: "Avg Order Value", value: `₦${avgOrder.toLocaleString()}`, trend: "-3%", up: false },
+        { icon: DollarSign, label: "Estimated Request Value", value: `₦${totalRevenue.toLocaleString()}`, trend: null, up: true },
+        { icon: ShoppingBag, label: "Availability Requests", value: orders.length, trend: null, up: true },
+        { icon: TrendingUp, label: "Average Request", value: `₦${avgOrder.toLocaleString()}`, trend: null, up: false },
         { icon: AlertCircle, label: "Stock Alerts", value: lowStock, trend: null, up: false },
     ];
 

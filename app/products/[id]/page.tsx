@@ -21,6 +21,7 @@ export default function ProductDetailPage() {
   const [activeImg, setActiveImg] = useState(0);
   const [wishlisted, setWishlisted] = useState(false);
   const [added, setAdded] = useState(false);
+  const [selectionError, setSelectionError] = useState("");
 
   useEffect(() => {
     getProductById(id as string).then((p) => {
@@ -31,6 +32,15 @@ export default function ProductDetailPage() {
 
   function handleAddToCart() {
     if (!product) return;
+    if (product.sizes.length > 0 && !selectedSize) {
+      setSelectionError("Please choose a size.");
+      return;
+    }
+    if (product.colors.length > 0 && !selectedColor) {
+      setSelectionError("Please choose a colour.");
+      return;
+    }
+    setSelectionError("");
     addItem({ productId: product.id, name: product.name, price: product.price, image: product.images[0], qty, size: selectedSize, color: selectedColor });
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
@@ -154,7 +164,7 @@ export default function ProductDetailPage() {
           <div className="flex items-center gap-3 bg-gray-100 rounded-full px-3 py-1.5">
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="active:scale-90 transition"><Minus size={15} /></button>
             <span className="w-6 text-center font-semibold text-sm">{qty}</span>
-            <button onClick={() => setQty((q) => q + 1)} className="active:scale-90 transition"><Plus size={15} /></button>
+            <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} className="active:scale-90 transition"><Plus size={15} /></button>
           </div>
           <button
             onClick={handleAddToCart}
@@ -163,6 +173,7 @@ export default function ProductDetailPage() {
             {added ? "Added to Cart ✓" : `Add to Cart — ₦${(product.price * qty).toLocaleString()}`}
           </button>
         </div>
+        {selectionError && <p className="text-sm text-red-600 -mt-3 mb-5">{selectionError}</p>}
 
         {/* Tags */}
         {product.tags.length > 0 && (

@@ -16,6 +16,7 @@ export default function ProductCard({ product }: Props) {
   const [added, setAdded] = useState(false);
 
   function handleAddToCart(e: React.MouseEvent) {
+    if (product.sizes.length > 0 || product.colors.length > 0) return;
     e.preventDefault();
     addItem({
       productId: product.id,
@@ -77,7 +78,7 @@ export default function ProductCard({ product }: Props) {
           onClick={handleAddToCart}
           className={`rounded-full p-1.5 transition active:scale-90 ${added ? "bg-green-500 text-white" : "bg-primary-400 hover:bg-primary-500 text-gray-900"}`}
         >
-          <Plus size={14} />
+          <Plus size={14} aria-label={product.sizes.length > 0 || product.colors.length > 0 ? "Choose options" : "Add to cart"} />
         </button>
       </div>
     </Link>

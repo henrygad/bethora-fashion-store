@@ -6,6 +6,7 @@ import { CheckCircle2, Truck, XCircle } from "lucide-react";
 import Navbar from "@/components/shared/Navbar";
 import { getOrderById } from "@/lib/firebase/firestore";
 import type { Order } from "@/types";
+import { formatDeliveryAddress } from "@/lib/address";
 
 export default function OrderConfirmationPage() {
   const { id } = useParams();
@@ -52,8 +53,8 @@ export default function OrderConfirmationPage() {
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-100 mb-4">
           <CheckCircle2 size={42} className="text-green-600" />
         </div>
-        <h1 className="text-xl font-bold mb-1">Order Placed!</h1>
-        <p className="text-gray-500 text-sm mb-6">Order #{order.id}</p>
+        <h1 className="text-xl font-bold mb-1">Availability Request Sent!</h1>
+        <p className="text-gray-500 text-sm mb-6">Request #{order.id}</p>
 
         {/* Items */}
         <div className="border border-gray-100 rounded-2xl p-4 text-left mb-4 bg-white">
@@ -64,7 +65,7 @@ export default function OrderConfirmationPage() {
             </div>
           ))}
           <div className="flex justify-between text-base font-bold pt-3 mt-1 border-t border-gray-100">
-            <span>Total</span>
+            <span>Estimated Total</span>
             <span>₦{order.total.toLocaleString()}</span>
           </div>
         </div>
@@ -73,14 +74,14 @@ export default function OrderConfirmationPage() {
         <div className="border border-gray-100 rounded-2xl p-4 text-left mb-4 bg-white">
           <p className="text-sm font-semibold mb-1">Delivering To</p>
           <p className="text-sm text-gray-600">{order.address.name} · {order.address.phone}</p>
-          <p className="text-sm text-gray-600">{order.address.address}, {order.address.state}</p>
+          <p className="text-sm text-gray-600">{formatDeliveryAddress(order.address)}</p>
         </div>
 
         {/* ETA */}
         <div className="flex items-center gap-3 bg-primary-50 rounded-2xl p-4 mb-8 text-left">
           <Truck size={22} className="text-primary-600 shrink-0" />
           <p className="text-sm text-gray-700">
-            Estimated delivery in <span className="font-semibold">3–5 business days</span>. We&apos;ll notify you when your order ships.
+            We are confirming availability with our suppliers. Please do not make payment until our team confirms your products on WhatsApp.
           </p>
         </div>
 
@@ -89,7 +90,7 @@ export default function OrderConfirmationPage() {
             onClick={() => router.push("/account/orders")}
             className="w-full bg-gray-900 text-white font-bold py-3 rounded-full hover:bg-gray-800 transition"
           >
-            Track Order
+            View Request
           </button>
           <button
             onClick={() => router.push("/products")}

@@ -10,13 +10,15 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
     useEffect(() => {
         if (!loading && !user) router.push("/login");
-    }, [user, loading]);
+    }, [user, loading, router]);
 
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center">
             <div className="w-8 h-8 border-4 border-primary-400 border-t-transparent rounded-full animate-spin" />
         </div>
     );
+
+    if (!user) return null;
 
     return <>{children}</>;
 }

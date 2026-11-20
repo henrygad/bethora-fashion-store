@@ -1,0 +1,55 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /products/{productId} {
+      allow read: if resource.data.status == 'Active' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if owns(resource.data.userId) || isAdmin();
+      allow create: if false;
+      allow update, delete: if isAdmin();
+    }
+
+    match /addresses/{addressId} {
+      allow read, delete: if owns(resource.data.userId);
+      allow create: if owns(request.resource.data.userId)
+        && request.resource.data.keys().hasAll(['userId', 'label', 'name', 'phone', 'address', 'city', 'lga', 'state', 'isDefault']);
+      allow update: if owns(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['label', 'name', 'phone', 'address', 'city', 'lga', 'state', 'isDefault']);
+    }
+
+    match /users/{userId} {
+      allow create: if owns(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'customer';
+      allow read: if owns(userId) || isAdmin();
+      allow update: if owns(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'phone', 'photoURL']);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

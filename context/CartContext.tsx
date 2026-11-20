@@ -3,37 +3,49 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { CartItem } from "@/types";
 import { logActivity } from "@/lib/cookies";
+import { calculateOrderTotals, cartLineKey } from "@/lib/commerce";
 
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string) => void;
-  changeQty: (productId: string, delta: number) => void;
+  removeItem: (productId: string, size?: string, color?: string) => void;
+  changeQty: (productId: string, delta: number, size?: string, color?: string) => void;
   clearCart: () => void;
   subtotal: number;
   delivery: number;
   total: number;
   count: number;
+  ready: boolean;
 }
 
 const CartContext = createContext<CartContextType | null>(null);
 
-const FREE_DELIVERY_THRESHOLD = 20000;
-const DELIVERY_FEE = 1500;
+function isSameCartLine(item: CartItem, productId: string, size?: string, color?: string) {
+  return cartLineKey(item) === cartLineKey({ productId, size, color });
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("bethora_cart");
-      if (saved) setItems(JSON.parse(saved));
-    } catch { }
+    const timer = window.setTimeout(() => {
+      try {
+        const saved = localStorage.getItem("bethora_cart");
+        if (saved) {
+          const parsed: unknown = JSON.parse(saved);
+          if (Array.isArray(parsed)) setItems(parsed as CartItem[]);
+        }
+      } catch { }
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
     localStorage.setItem("bethora_cart", JSON.stringify(items));
-  }, [items]);
+  }, [items, ready]);
 
   function addItem(item: CartItem) {
     setItems((prev) => {
@@ -48,14 +60,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     logActivity("add_to_cart", { productId: item.productId, qty: item.qty });
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function removeItem(productId: string, size?: string, color?: string) {
+    setItems((prev) => prev.filter((i) => !isSameCartLine(i, productId, size, color)));
   }
 
-  function changeQty(productId: string, delta: number) {
+  function changeQty(productId: string, delta: number, size?: string, color?: string) {
     setItems((prev) =>
       prev
-        .map((i) => (i.productId === productId ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
+        .map((i) => (isSameCartLine(i, productId, size, color) ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
         .filter((i) => i.qty > 0)
     );
   }
@@ -65,13 +77,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("bethora_cart");
   }
 
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-  const delivery = items.length === 0 || subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
-  const total = subtotal + delivery;
+  const { subtotal, delivery, total } = calculateOrderTotals(items);
   const count = items.reduce((s, i) => s + i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, changeQty, clearCart, subtotal, delivery, total, count }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, changeQty, clearCart, subtotal, delivery, total, count, ready }}>
       {children}
     </CartContext.Provider>
   );
