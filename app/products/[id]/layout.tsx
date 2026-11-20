@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { getPublicProduct } from "@/lib/server/products";
 import { productUrl } from "@/lib/site";
 
@@ -54,7 +55,7 @@ export async function generateMetadata({ params }: ProductLayoutProps): Promise<
 export default async function ProductLayout({ children, params }: ProductLayoutProps) {
   const { id } = await params;
   const product = await getPublicProduct(id);
-  if (!product) return children;
+  if (!product) notFound();
 
   const url = productUrl(product.id);
   const schema = {
