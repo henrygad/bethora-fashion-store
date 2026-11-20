@@ -16,12 +16,23 @@ function getAdminApp() {
     throw new Error("FIREBASE_PROJECT_ID is not configured");
   }
 
-  return initializeApp({
-    projectId,
-    credential: clientEmail && privateKey
-      ? cert({ projectId, clientEmail, privateKey })
-      : applicationDefault(),
-  });
+  if (clientEmail && privateKey) {
+    return initializeApp({
+      projectId,
+      credential: cert({ projectId, clientEmail, privateKey }),
+    });
+  }
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    return initializeApp({
+      projectId,
+      credential: applicationDefault(),
+    });
+  }
+
+  throw new Error(
+    "Firebase Admin is not configured. Add FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY to the server environment."
+  );
 }
 
 export function getAdminAuth() {
@@ -31,4 +42,3 @@ export function getAdminAuth() {
 export function getAdminDb() {
   return getFirestore(getAdminApp());
 }
-

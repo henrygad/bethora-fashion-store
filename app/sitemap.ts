@@ -2,7 +2,9 @@ import type { MetadataRoute } from "next";
 import { getPublicProducts } from "@/lib/server/products";
 import { productUrl, SITE_URL } from "@/lib/site";
 
-export const revalidate = 3600;
+// Product URLs come from Firestore at request time. This keeps deployment builds
+// independent of Firebase credentials while still serving a current sitemap.
+export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
